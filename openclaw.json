@@ -1,0 +1,71 @@
+{
+  "//": [
+    "OpenClaw configuration — Ollama provider (100% local, no API fees)",
+    "Place this file at:  %USERPROFILE%\\.openclaw\\openclaw.json  (Windows)",
+    "Or let the setup script create it automatically.",
+    "",
+    "Key settings you should edit:",
+    "  models.providers.ollama.models  — list the models you have pulled",
+    "  agents.defaults.model.primary   — which model to use by default"
+  ],
+
+  "gateway": {
+    "bind": "loopback",
+    "port": 18789,
+    "auth": {
+      "mode": "token"
+    },
+    "log": {
+      "level": "info"
+    }
+  },
+
+  "models": {
+    "providers": {
+      "ollama": {
+        "baseUrl": "http://host.docker.internal:11434/v1",
+        "apiKey": "ollama-local",
+        "api": "openai-responses",
+
+        "models": [
+          {
+            "id": "llama3.2:latest",
+            "name": "Llama 3.2 (8B)",
+            "contextWindow": 32768,
+            "maxOutput": 8192
+          },
+          {
+            "id": "qwen2.5-coder:7b",
+            "name": "Qwen 2.5 Coder 7B",
+            "contextWindow": 65536,
+            "maxOutput": 8192
+          },
+          {
+            "id": "mistral:latest",
+            "name": "Mistral 7B",
+            "contextWindow": 32768,
+            "maxOutput": 8192
+          },
+          {
+            "id": "deepseek-r1:8b",
+            "name": "DeepSeek R1 8B",
+            "contextWindow": 65536,
+            "maxOutput": 8192
+          }
+        ]
+      }
+    }
+  },
+
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "ollama/llama3.2:latest",
+        "subagent": "ollama/qwen2.5-coder:7b"
+      },
+      "sandbox": {
+        "mode": "off"
+      }
+    }
+  }
+}
