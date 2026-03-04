@@ -1,0 +1,92 @@
+version: "3.8"
+
+# ============================================================
+# OpenClaw + Ollama (Windows / Docker Desktop)
+# All inference stays 100% local — no API key needed.
+#
+# HOW TO START:
+#   docker compose up -d openclaw-gateway
+#
+# HOW TO STOP:
+#   docker compose down
+#
+# LOGS:
+#   docker compose logs -f openclaw-gateway
+# ============================================================
+
+services:
+
+  # ──────────────────────────────────────────────
+  # GATEWAY  — the main OpenClaw process
+  # ──────────────────────────────────────────────
+  openclaw-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: openclaw:local
+    container_name: openclaw-gateway
+
+    # Load all secrets / settings from .env
+    env_file:
+      - .env
+
+    # Extra env vars that are the same for everyone
+    environment:
+      # Tell OpenClaw where Ollama lives.
+      # host.docker.internal resolves to your Windows host from inside Docker.
+      OPENCLAW_OLLAMA_BASE_URL: "http://host.docker.internal:11434/v1"
+
+      # Bind to loopback so only YOUR machine can reach the UI
+      OPENCLAW_GATEWAY_BIND: "loopback"
+
+      # Log level: debug | info | warn | error
+      LOG_LEVEL: "info"
+
+    ports:
+      # Web dashboard  →  http://localhost:18789
+      - "127.0.0.1:18789:18789"
+
+    volumes:
+      # Persist OpenClaw config, memory, and secrets
+      - openclaw-config:/home/node/.openclaw
+      # Workspace folder — files the agent can read/write
+      - openclaw-workspace:/home/node/workspace
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18789/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ──────────────────────────────────────────────
+  # CLI helper — lets you run openclaw-cli commands
+  # without entering the gateway container manually.
+  #
+  # Usage example:
+  #   docker compose run --rm openclaw-cli dashboard --no-open
+  #   docker compose run --rm openclaw-cli models list
+  # ──────────────────────────────────────────────
+  openclaw-cli:
+    image: openclaw:local          # reuses the same image — no extra build
+    container_name: openclaw-cli
+    network_mode: "service:openclaw-gateway"  # shares gateway's network stack
+    env_file:
+      - .env
+    environment:
+      OPENCLAW_OLLAMA_BASE_URL: "http://host.docker.internal:11434/v1"
+    volumes:
+      - openclaw-config:/home/node/.openclaw
+      - openclaw-workspace:/home/node/workspace
+    entrypoint: ["node", "dist/index.js"]
+    profiles:
+      - cli                        # only starts when you explicitly call it
+
+# ──────────────────────────────────────────────
+# Named volumes — data survives container rebuilds
+# ──────────────────────────────────────────────
+volumes:
+  openclaw-config:
+  openclaw-workspace:
